@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { io } from 'socket.io-client';
 import { Search, LogOut, Send, Smile, Paperclip, MoreVertical, Phone, Video } from 'lucide-react';
+
+const socket = io('http://localhost:5001');
 
 const ChatPage = () => {
   const [selectedUser, setSelectedUser] = useState(null);
@@ -19,7 +22,7 @@ const ChatPage = () => {
       try {
         const response = await axios.get('http://localhost:5001/api/usersfromdb', {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
         });
         setUsers(response.data);
@@ -31,23 +34,48 @@ const ChatPage = () => {
     fetchUsers();
   }, [token]);
 
+  useEffect(() => {
+    if (conversationId) {
+      socket.emit('joinConversation', conversationId);
+    }
+  }, [conversationId]);
+
+  useEffect(() => {
+    socket.on('receiveMessage', (messageData) => {
+      if (messageData.conversation === conversationId) {
+        setMessages((prevMessages) => [...prevMessages, messageData]);
+      }
+    });
+
+    return () => {
+      socket.off('receiveMessage');
+    };
+  }, [conversationId]);
+
   const fetchMessages = async (user) => {
     try {
-      const response = await axios.post('http://localhost:5001/api/chat/conversations', {
-        participants: [currentUserId, user._id],
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
+      const response = await axios.post(
+        'http://localhost:5001/api/chat/conversations',
+        {
+          participants: [currentUserId, user._id],
         },
-      });
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       setConversationId(response.data._id);
 
-      const messagesResponse = await axios.get(`http://localhost:5001/api/chat/messages/${response.data._id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const messagesResponse = await axios.get(
+        `http://localhost:5001/api/chat/messages/${response.data._id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       setMessages(messagesResponse.data);
     } catch (error) {
@@ -63,18 +91,23 @@ const ChatPage = () => {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (message.trim() && conversationId) {
+      const messageData = {
+        conversation: conversationId,
+        sender: currentUserId,
+        text: message,
+      };
+
+      // Emit the message through Socket.IO
+      socket.emit('sendMessage', messageData);
+
+      // Save the message to the database
       try {
-        const response = await axios.post('http://localhost:5001/api/chat/messages', {
-          conversation: conversationId,
-          sender: currentUserId,
-          text: message,
-        }, {
+        await axios.post('http://localhost:5001/api/chat/messages', messageData, {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
         });
 
-        setMessages([...messages, response.data]);
         setMessage('');
       } catch (error) {
         console.error('Failed to send message:', error);
@@ -88,9 +121,10 @@ const ChatPage = () => {
     navigate('/');
   };
 
-  const filteredUsers = users.filter(user =>
-    user._id !== currentUserId &&
-    user.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUsers = users.filter(
+    (user) =>
+      user._id !== currentUserId &&
+      user.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -113,16 +147,24 @@ const ChatPage = () => {
 
         {/* User list */}
         <div className="flex-1 overflow-y-auto">
-          {filteredUsers.map(user => (
+          {filteredUsers.map((user) => (
             <div
               key={user._id}
-              className={`flex items-center p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${selectedUser === user ? 'bg-blue-50' : ''}`}
+              className={`flex items-center p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${
+                selectedUser === user ? 'bg-blue-50' : ''
+              }`}
               onClick={() => handleUserSelection(user)}
             >
-              <img src={user.avatar || 'https://i.pravatar.cc/150'} alt={user.name} className="w-12 h-12 rounded-full mr-4" />
+              <img
+                src={user.avatar || 'https://i.pravatar.cc/150'}
+                alt={user.name}
+                className="w-12 h-12 rounded-full mr-4"
+              />
               <div className="flex-1">
                 <h3 className="font-semibold">{user.name}</h3>
-                <p className="text-sm text-gray-500 truncate">{user.lastMessage || 'No recent messages'}</p>
+                <p className="text-sm text-gray-500 truncate">
+                  {user.lastMessage || 'No recent messages'}
+                </p>
               </div>
             </div>
           ))}
@@ -144,7 +186,11 @@ const ChatPage = () => {
           {/* Chat header */}
           <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
             <div className="flex items-center">
-              <img src={selectedUser.avatar || 'https://i.pravatar.cc/150'} alt={selectedUser.name} className="w-10 h-10 rounded-full mr-4" />
+              <img
+                src={selectedUser.avatar || 'https://i.pravatar.cc/150'}
+                alt={selectedUser.name}
+                className="w-10 h-10 rounded-full mr-4"
+              />
               <h2 className="font-semibold text-lg">{selectedUser.name}</h2>
             </div>
             <div className="flex items-center space-x-4">
@@ -165,9 +211,17 @@ const ChatPage = () => {
             {messages.map((msg) => (
               <div
                 key={msg._id}
-                className={`mb-4 ${msg.sender._id === currentUserId ? 'text-right' : 'text-left'}`}
+                className={`mb-4 ${
+                  msg.sender._id === currentUserId ? 'text-right' : 'text-left'
+                }`}
               >
-                <p className={`inline-block p-3 rounded-lg ${msg.sender._id === currentUserId ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'}`}>
+                <p
+                  className={`inline-block p-3 rounded-lg ${
+                    msg.sender._id === currentUserId
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-200 text-gray-800'
+                  }`}
+                >
                   {msg.text}
                 </p>
               </div>
@@ -175,11 +229,20 @@ const ChatPage = () => {
           </div>
 
           {/* Message input */}
-          <form onSubmit={handleSendMessage} className="bg-white border-t border-gray-200 px-6 py-4 flex items-center">
-            <button type="button" className="text-gray-500 hover:text-gray-700 mr-4">
+          <form
+            onSubmit={handleSendMessage}
+            className="bg-white border-t border-gray-200 px-6 py-4 flex items-center"
+          >
+            <button
+              type="button"
+              className="text-gray-500 hover:text-gray-700 mr-4"
+            >
               <Smile size={24} />
             </button>
-            <button type="button" className="text-gray-500 hover:text-gray-700 mr-4">
+            <button
+              type="button"
+              className="text-gray-500 hover:text-gray-700 mr-4"
+            >
               <Paperclip size={24} />
             </button>
             <input
@@ -189,7 +252,10 @@ const ChatPage = () => {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
             />
-            <button type="submit" className="ml-4 bg-blue-500 text-white rounded-full p-2 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button
+              type="submit"
+              className="ml-4 bg-blue-500 text-white rounded-full p-2 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
               <Send size={20} />
             </button>
           </form>

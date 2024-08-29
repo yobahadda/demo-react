@@ -1,15 +1,14 @@
-// chat.js
 const express = require('express');
 const router = express.Router();
 const { sendMessage, getMessages, createConversation } = require('../controllers/chatController');
 
-// Route pour envoyer un message
+// Route to send a message
 router.post('/messages', sendMessage);
 
-// Route pour obtenir les messages d'une conversation
+// Route to get messages of a conversation
 router.get('/messages/:conversationId', getMessages);
 
-// Route pour créer une conversation
+// Route to create or retrieve a conversation
 router.post('/conversations', createConversation);
 
 module.exports = router;
