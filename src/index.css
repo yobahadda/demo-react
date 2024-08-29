@@ -31,6 +31,33 @@ body {
 .actions {
   @apply flex justify-center space-x-4 mt-8;
 }
+.chat-container {
+    @apply flex flex-col min-h-screen;
+  }
+  
+  .user-list {
+    @apply w-1/4 bg-gray-100 p-4 flex flex-col h-full;
+  }
+  
+  .message-box {
+    @apply flex-grow flex flex-col p-4;
+  }
+  
+  .message {
+    @apply mb-2 p-2 rounded;
+  }
+  
+  .message-input {
+    @apply flex-grow p-2 rounded-l border border-gray-300;
+  }
+  
+  .send-button {
+    @apply bg-blue-500 text-white p-2 rounded-r flex items-center;
+  }
+  
+  .logout-button {
+    @apply mt-4 bg-red-500 text-white p-2 rounded flex items-center justify-center;
+  }
 
 header, footer {
   text-align: center;
