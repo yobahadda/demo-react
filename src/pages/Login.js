@@ -18,8 +18,10 @@ const Login = () => {
     } catch (err) {
       setError(err.message); // Set error message if login fails
       // No navigate call here; just display the error
+      navigate('/login'); // Navigate to the login page
     }
   };
+  
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100">

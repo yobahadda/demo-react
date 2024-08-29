@@ -9,13 +9,19 @@ export const AuthProvider = ({ children }) => {
   const loginUser = async (email, password) => {
     try {
       const data = await login(email, password);
-      setUser(data.user); // Sauvegarde les infos de l'utilisateur
-      localStorage.setItem('token', data.token); // Sauvegarde le token
+      if (data && data.user) { // Check if user data exists
+        setUser(data.user); // Save user info
+        localStorage.setItem('token', data.token); // Save token
+      } else {
+        throw new Error('Invalid login response'); // This will be caught and handled
+      }
     } catch (error) {
-      console.error('Erreur de connexion', error);
+      console.error('Erreur de connexion', error.message);
+      throw error; // Rethrow the error to handle it in the Login component
     }
   };
-
+  
+  
   const registerUser = async (name, email, password) => {
     try {
       await register(name, email, password);

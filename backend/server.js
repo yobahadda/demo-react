@@ -3,9 +3,18 @@ const connectDB = require('./config/db');
 const authRoutes = require('./routes/auth');
 const chatRoutes = require('./routes/chat');
 const cors = require('cors');
+const User = require('./models/User'); 
+const http = require('http');
+const { Server } = require('socket.io');// Make sure to import the User model
 
-// Removed incorrect import of { Server } from 'lucide-react'
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: 'http://localhost:3001',
+    methods: ['GET', 'POST']
+  }
+});
 
 // Connect to the database
 connectDB();
@@ -31,4 +40,6 @@ app.get('/api/users', async (req, res) => {
 const PORT = process.env.PORT || 5001;
 
 // Corrected the way to start the server using app.listen()
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(5001, () => {
+  console.log('Server is running on port 5001');
+});
