@@ -14,6 +14,7 @@ const Login = () => {
     setError(''); // Clear previous error message
     try {
       await loginUser(email, password); // Attempt to login
+    
       navigate('/conversations'); // Navigate only if login is successful
     } catch (err) {
       setError(err.message); // Set error message if login fails

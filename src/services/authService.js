@@ -24,7 +24,9 @@ export const register = async (name, email, password) => {
 export const login = async (email, password) => {
   try {
     const response = await axios.post(`${API_URL}/login`, { email, password });
+    console.log('User logged in with id :', response.data.id);
     return response.data; // Contient le token
+    
   } catch (error) {
     throw new Error(error.response?.data?.error || 'Erreur de connexion');
   }

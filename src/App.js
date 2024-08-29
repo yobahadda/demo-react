@@ -6,6 +6,7 @@ import Register from './pages/Register';
 import Login from './pages/Login';
 import Conversations from './pages/Conversations';
 import Chat from './pages/Chat'; // Assure-toi que ce chemin est correct
+import ChatPage from './pages/Chatpage';
 
 const App = () => {
   return (
@@ -15,7 +16,7 @@ const App = () => {
           <Route path="/" element={<Home />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/conversations" element={<Conversations />} />
+          <Route path="/conversations" element={< ChatPage />} />
           <Route path="/chat/:conversationId" element={<Chat />} />
         </Routes>
       </Router>

@@ -2,10 +2,12 @@ const express = require('express');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/auth');
 const chatRoutes = require('./routes/chat');
-const cors = require('cors');
+const userFromDb = require('./routes/userFromDb');
+
 const User = require('./models/User'); 
 const http = require('http');
-const { Server } = require('socket.io');// Make sure to import the User model
+const { Server } = require('socket.io');
+const cors = require('cors');// Make sure to import the User model
 
 const app = express();
 const server = http.createServer(app);
@@ -26,15 +28,7 @@ app.use(cors());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
-
-app.get('/api/users', async (req, res) => {
-    try {
-        const users = await User.find(); // Make sure `User` is properly defined and imported
-        res.json(users);
-    } catch (error) {
-        res.status(500).json({ error: 'Erreur lors de la récupération des utilisateurs' });
-    }
-});
+app.use('/api/usersfromdb', userFromDb);
 
 // Define the port to use
 const PORT = process.env.PORT || 5001;

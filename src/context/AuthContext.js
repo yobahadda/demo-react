@@ -8,18 +8,23 @@ export const AuthProvider = ({ children }) => {
 
   const loginUser = async (email, password) => {
     try {
-      const data = await login(email, password);
-      if (data && data.user) { // Check if user data exists
-        setUser(data.user); // Save user info
-        localStorage.setItem('token', data.token); // Save token
+      const data = await login(email, password); // Appel à votre fonction de connexion
+      if (data && data.user) { // Vérifie si les données utilisateur existent
+        setUser(data.user); // Sauvegarde les informations de l'utilisateur dans le contexte
+        localStorage.setItem('token', data.token); // Sauvegarde le token dans localStorage
+        localStorage.setItem('userId', data.user._id); // Sauvegarde l'ID utilisateur dans localStorage
+        
+        console.log('User logged in:', data.user);
+  
       } else {
-        throw new Error('Invalid login response'); // This will be caught and handled
+        throw new Error('Invalid login response'); // Erreur si les données de connexion ne sont pas valides
       }
     } catch (error) {
-      console.error('Erreur de connexion', error.message);
-      throw error; // Rethrow the error to handle it in the Login component
+      console.error('Erreur de connexion', error.message); // Affiche l'erreur
+      throw error; // Rejette l'erreur pour qu'elle puisse être traitée dans le composant Login
     }
   };
+  
   
   
   const registerUser = async (name, email, password) => {

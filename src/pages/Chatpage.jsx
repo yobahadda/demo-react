@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Search, LogOut, Send, Smile, Paperclip, MoreVertical, Phone, Video } from 'lucide-react';
 
@@ -6,19 +7,32 @@ const ChatPage = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [message, setMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [users, setUsers] = useState([]);
   const navigate = useNavigate();
+  const token = localStorage.getItem('token'); // Récupère le token
+  const currentUserId = localStorage.getItem('userId'); // Récupère l'ID utilisateur depuis localStorage
 
-  // Mock user data
-  const users = [
-    { id: 1, name: 'Alice Johnson', avatar: 'https://i.pravatar.cc/150?img=1', lastMessage: 'Hey, how are you?' },
-    { id: 2, name: 'Bob Smith', avatar: 'https://i.pravatar.cc/150?img=2', lastMessage: 'Can we meet tomorrow?' },
-    { id: 3, name: 'Charlie Brown', avatar: 'https://i.pravatar.cc/150?img=3', lastMessage: 'Thanks for your help!' },
-    { id: 4, name: 'Diana Prince', avatar: 'https://i.pravatar.cc/150?img=4', lastMessage: 'The project is done.' },
-    { id: 5, name: 'Ethan Hunt', avatar: 'https://i.pravatar.cc/150?img=5', lastMessage: 'Mission accomplished!' },
-  ];
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await axios.get('http://localhost:5001/api/usersfromdb', {
+          headers: {
+            'Authorization': `Bearer ${token}`, // Inclure le token dans les en-têtes
+          },
+        });
+        setUsers(response.data); // Met à jour la liste des utilisateurs
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+      }
+    };
 
-  const filteredUsers = users.filter(user => 
-    user.name.toLowerCase().includes(searchTerm.toLowerCase())
+    fetchUsers();
+  }, [token]);
+
+  // Filtre les utilisateurs pour exclure l'utilisateur connecté
+  const filteredUsers = users.filter(user =>
+    user._id !== currentUserId && // Exclut l'utilisateur connecté
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) // Filtre par nom
   );
 
   const handleSendMessage = (e) => {
@@ -30,7 +44,8 @@ const ChatPage = () => {
   };
 
   const handleLogout = () => {
-    // Implement logout logic here
+    localStorage.removeItem('token');
+    localStorage.removeItem('userId');
     navigate('/');
   };
 
@@ -56,14 +71,14 @@ const ChatPage = () => {
         <div className="flex-1 overflow-y-auto">
           {filteredUsers.map(user => (
             <div
-              key={user.id}
+              key={user._id}
               className={`flex items-center p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${selectedUser === user ? 'bg-blue-50' : ''}`}
               onClick={() => setSelectedUser(user)}
             >
-              <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full mr-4" />
+              <img src={user.avatar || 'https://i.pravatar.cc/150'} alt={user.name} className="w-12 h-12 rounded-full mr-4" />
               <div className="flex-1">
                 <h3 className="font-semibold">{user.name}</h3>
-                <p className="text-sm text-gray-500 truncate">{user.lastMessage}</p>
+                <p className="text-sm text-gray-500 truncate">{user.lastMessage || 'No recent messages'}</p>
               </div>
             </div>
           ))}
@@ -85,7 +100,7 @@ const ChatPage = () => {
           {/* Chat header */}
           <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
             <div className="flex items-center">
-              <img src={selectedUser.avatar} alt={selectedUser.name} className="w-10 h-10 rounded-full mr-4" />
+              <img src={selectedUser.avatar || 'https://i.pravatar.cc/150'} alt={selectedUser.name} className="w-10 h-10 rounded-full mr-4" />
               <h2 className="font-semibold text-lg">{selectedUser.name}</h2>
             </div>
             <div className="flex items-center space-x-4">
@@ -103,7 +118,7 @@ const ChatPage = () => {
 
           {/* Messages area */}
           <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
-            {/* You can add message bubbles here */}
+            {/* Add message bubbles here */}
           </div>
 
           {/* Message input */}
