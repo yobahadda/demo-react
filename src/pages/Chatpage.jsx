@@ -8,19 +8,21 @@ const ChatPage = () => {
   const [message, setMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [conversationId, setConversationId] = useState(null);
   const navigate = useNavigate();
-  const token = localStorage.getItem('token'); // Récupère le token
-  const currentUserId = localStorage.getItem('userId'); // Récupère l'ID utilisateur depuis localStorage
+  const token = localStorage.getItem('token');
+  const currentUserId = localStorage.getItem('userId');
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         const response = await axios.get('http://localhost:5001/api/usersfromdb', {
           headers: {
-            'Authorization': `Bearer ${token}`, // Inclure le token dans les en-têtes
+            'Authorization': `Bearer ${token}`,
           },
         });
-        setUsers(response.data); // Met à jour la liste des utilisateurs
+        setUsers(response.data);
       } catch (error) {
         console.error('Failed to fetch users:', error);
       }
@@ -29,17 +31,54 @@ const ChatPage = () => {
     fetchUsers();
   }, [token]);
 
-  // Filtre les utilisateurs pour exclure l'utilisateur connecté
-  const filteredUsers = users.filter(user =>
-    user._id !== currentUserId && // Exclut l'utilisateur connecté
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) // Filtre par nom
-  );
+  const fetchMessages = async (user) => {
+    try {
+      const response = await axios.post('http://localhost:5001/api/chat/conversations', {
+        participants: [currentUserId, user._id],
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
 
-  const handleSendMessage = (e) => {
+      setConversationId(response.data._id);
+
+      const messagesResponse = await axios.get(`http://localhost:5001/api/chat/messages/${response.data._id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      setMessages(messagesResponse.data);
+    } catch (error) {
+      console.error('Failed to fetch messages:', error);
+    }
+  };
+
+  const handleUserSelection = (user) => {
+    setSelectedUser(user);
+    fetchMessages(user);
+  };
+
+  const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (message.trim()) {
-      console.log('Sending message:', message);
-      setMessage('');
+    if (message.trim() && conversationId) {
+      try {
+        const response = await axios.post('http://localhost:5001/api/chat/messages', {
+          conversation: conversationId,
+          sender: currentUserId,
+          text: message,
+        }, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        setMessages([...messages, response.data]);
+        setMessage('');
+      } catch (error) {
+        console.error('Failed to send message:', error);
+      }
     }
   };
 
@@ -48,6 +87,11 @@ const ChatPage = () => {
     localStorage.removeItem('userId');
     navigate('/');
   };
+
+  const filteredUsers = users.filter(user =>
+    user._id !== currentUserId &&
+    user.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -73,7 +117,7 @@ const ChatPage = () => {
             <div
               key={user._id}
               className={`flex items-center p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 ${selectedUser === user ? 'bg-blue-50' : ''}`}
-              onClick={() => setSelectedUser(user)}
+              onClick={() => handleUserSelection(user)}
             >
               <img src={user.avatar || 'https://i.pravatar.cc/150'} alt={user.name} className="w-12 h-12 rounded-full mr-4" />
               <div className="flex-1">
@@ -118,7 +162,16 @@ const ChatPage = () => {
 
           {/* Messages area */}
           <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
-            {/* Add message bubbles here */}
+            {messages.map((msg) => (
+              <div
+                key={msg._id}
+                className={`mb-4 ${msg.sender._id === currentUserId ? 'text-right' : 'text-left'}`}
+              >
+                <p className={`inline-block p-3 rounded-lg ${msg.sender._id === currentUserId ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'}`}>
+                  {msg.text}
+                </p>
+              </div>
+            ))}
           </div>
 
           {/* Message input */}
