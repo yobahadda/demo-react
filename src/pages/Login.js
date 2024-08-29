@@ -11,11 +11,13 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(''); // Clear previous error message
     try {
-      await loginUser(email, password);
-      navigate('/conversations'); // Redirect to the conversations page after login
+      await loginUser(email, password); // Attempt to login
+      navigate('/conversations'); // Navigate only if login is successful
     } catch (err) {
-      setError(err.message);
+      setError(err.message); // Set error message if login fails
+      // No navigate call here; just display the error
     }
   };
 
