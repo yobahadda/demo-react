@@ -3,6 +3,7 @@ const connectDB = require('./config/db');
 const authRoutes = require('./routes/auth');
 const chatRoutes = require('./routes/chat');
 const userFromDb = require('./routes/userFromDb');
+const convroutes = require('./routes/convroutes');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
@@ -34,6 +35,7 @@ app.use(cors({
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/usersfromdb', userFromDb);
+app.use('/api', convroutes);
 
 const onlineUsers = new Map(); // Un Map pour suivre les utilisateurs en ligne
 
