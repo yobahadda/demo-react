@@ -9,6 +9,7 @@ const cors = require('cors');
 
 const Message = require('./models/Message');
 const Conversation = require('./models/Conversation');
+const User = require('./models/User'); // Importer le modèle d'utilisateur
 
 const app = express();
 const server = http.createServer(app);
@@ -34,9 +35,18 @@ app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/usersfromdb', userFromDb);
 
+const onlineUsers = new Map(); // Un Map pour suivre les utilisateurs en ligne
+
 // Socket.IO connection
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
+
+  // Lorsque l'utilisateur s'identifie
+  socket.on('userOnline', (userId) => {
+    onlineUsers.set(userId, socket.id);
+    console.log(`User with ID: ${userId} is online.`);
+    io.emit('updateUserStatus', { userId, status: 'online' });
+  });
 
   // Join a conversation
   socket.on('joinConversation', (conversationId) => {
@@ -62,6 +72,16 @@ io.on('connection', (socket) => {
 
   // Handle disconnect
   socket.on('disconnect', () => {
+    // Trouver l'utilisateur qui s'est déconnecté
+    const disconnectedUser = [...onlineUsers.entries()].find(([userId, socketId]) => socketId === socket.id);
+    
+    if (disconnectedUser) {
+      const [userId] = disconnectedUser;
+      onlineUsers.delete(userId);
+      console.log(`User with ID: ${userId} is offline.`);
+      io.emit('updateUserStatus', { userId, status: 'offline' });
+    }
+
     console.log('A user disconnected:', socket.id);
   });
 });
